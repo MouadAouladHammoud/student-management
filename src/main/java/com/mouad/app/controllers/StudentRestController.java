@@ -3,7 +3,6 @@ package com.mouad.app.controllers;
 import com.mouad.app.dto.NewPaymentDto;
 import com.mouad.app.entities.Payment;
 import com.mouad.app.entities.PaymentStatus;
-import com.mouad.app.entities.PaymentType;
 import com.mouad.app.entities.Student;
 import com.mouad.app.repositories.PaymentRepository;
 import com.mouad.app.repositories.StudentRepository;
@@ -13,13 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.net.URI;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.time.LocalDate;
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @CrossOrigin("*")

@@ -26,10 +26,10 @@ public class StudentManagementApplication {
 	@Bean
 	CommandLineRunner commandLineRunner(StudentRepository studentRepository, PaymentRepository paymentRepository) {
 		return args -> {
-			studentRepository.save(Student.builder().id(UUID.randomUUID().toString()).code("112233").firstName("Mohamed").programId("GLSID").build());
-			studentRepository.save(Student.builder().id(UUID.randomUUID().toString()).code("112244").firstName("Imane").programId("GLSID").build());
-			studentRepository.save(Student.builder().id(UUID.randomUUID().toString()).code("112255").firstName("Aymane").programId("BDCC").build());
-			studentRepository.save(Student.builder().id(UUID.randomUUID().toString()).code("112266").firstName("Lobna").programId("BDCC").build());
+			studentRepository.save(Student.builder().id(1).code("112233").firstName("Mohamed").programId("GLSID").email("admin@gmail.com").password("$2a$10$fMJI78OPWQRFhInCOhqlc.R1LC4s.FRLNqjNE45RlT4IWrtaAiGjm").build());
+			studentRepository.save(Student.builder().id(2).code("112244").firstName("Imane").programId("GLSID").email("user@gmail.com").password("$2a$10$fMJI78OPWQRFhInCOhqlc.R1LC4s.FRLNqjNE45RlT4IWrtaAiGjm").build());
+			studentRepository.save(Student.builder().id(3).code("112255").firstName("Aymane").programId("BDCC").email("aymane@gmail.com").password("123456").build());
+			studentRepository.save(Student.builder().id(4).code("112266").firstName("Lobna").programId("BDCC").email("lobna@gmail.com").password("123456").build());
 
 			PaymentType[] paymentTypes = PaymentType.values();
 			Random random = new Random();
