@@ -27,6 +27,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
+import com.mouad.app.repositories.TokenRepository;
+
 public class Jwt {
 
     @Service
@@ -97,6 +99,7 @@ public class Jwt {
 
         private final JwtService jwtService;
         private final UserDetailsService userDetailsService;
+        private final TokenRepository tokenRepository;
 
         @Override
         protected void doFilterInternal(@NonNull HttpServletRequest request,
@@ -116,7 +119,11 @@ public class Jwt {
             if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
 
-                if (jwtService.isTokenValid(jwt, userDetails)) {
+                var isTokenValid = tokenRepository.findByToken(jwt)
+                        .map(token -> !token.isExpired() && !token.isRevoked())
+                        .orElse(false);
+
+                if (jwtService.isTokenValid(jwt, userDetails) && isTokenValid) {
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails,null, userDetails.getAuthorities());
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);

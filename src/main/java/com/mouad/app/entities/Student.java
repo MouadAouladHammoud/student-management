@@ -1,13 +1,14 @@
 package com.mouad.app.entities;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
+import java.util.List;
 
 @Data
 @Entity
@@ -27,7 +28,11 @@ public class Student implements UserDetails {
     private String programId;
     private String photo;
     private String email;
+    @JsonIgnore
     private String password;
+    @OneToMany(mappedBy = "student", fetch = FetchType.LAZY)
+    @JsonManagedReference
+    private List<Token> tokens;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
