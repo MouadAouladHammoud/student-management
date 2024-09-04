@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
@@ -30,13 +31,20 @@ public class Student implements UserDetails {
     private String email;
     @JsonIgnore
     private String password;
+
+    @JsonIgnore
+    @Column(name = "role")
+    @Enumerated(EnumType.STRING)
+    private UserRole userRole;
+
+    @JsonIgnore
     @OneToMany(mappedBy = "student", fetch = FetchType.LAZY)
     @JsonManagedReference
     private List<Token> tokens;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return null;
+        return userRole.getAuthorities();
     }
 
     @Override

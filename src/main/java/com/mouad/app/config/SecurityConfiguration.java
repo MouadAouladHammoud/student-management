@@ -13,6 +13,11 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
 import org.springframework.security.core.context.SecurityContextHolder;
+
+import static com.mouad.app.entities.UserRole.*;
+import static com.mouad.app.entities.UserRole.Permissions.*;
+import static org.springframework.http.HttpMethod.GET;
+import static org.springframework.http.HttpMethod.POST;
 import static org.springframework.security.config.http.SessionCreationPolicy.STATELESS;
 
 @Configuration
@@ -48,6 +53,13 @@ public class SecurityConfiguration {
             .authorizeHttpRequests(req ->
                     req.requestMatchers(WHITE_LIST_URL)
                         .permitAll()
+
+                        .requestMatchers("/students/**").hasAnyRole(ADMIN.name(), MANAGER.name())
+                        .requestMatchers(GET, "/students").hasAnyAuthority(ADMIN_READ.name(), MANAGER_READ.name())
+
+                        .requestMatchers("/payments/**").hasRole(ADMIN.name())
+                        .requestMatchers(POST, "/payments/**").hasAuthority(ADMIN_CREATE.name())
+
                         .anyRequest()
                         .authenticated()
             )
