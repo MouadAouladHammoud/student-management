@@ -3,12 +3,22 @@ import com.mouad.app.entities.Student;
 import com.mouad.app.repositories.StudentRepository;
 import com.mouad.app.requests.AuthenticationRequest;
 import com.mouad.app.requests.AuthenticationResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Service;
+import org.springframework.http.HttpHeaders;
+
+import java.io.IOException;
 
 import com.mouad.app.entities.Token;
 import com.mouad.app.repositories.TokenRepository;
@@ -33,13 +43,45 @@ public class AuthenticationService {
 
         var student = repository.findByEmail(authenticationRequest.getEmail()).orElseThrow();
         var jwtToken = jwtService.generateToken(student, student.getId());
+        var refreshToken = jwtService.generateRefreshToken(student, student.getId());
 
         this.revokeAllUserTokens(student);
         this.saveTokenForUser(student, jwtToken);
 
         return AuthenticationResponse.builder()
-                .token(jwtToken)
+                .accessToken(jwtToken)
+                .refreshToken(refreshToken)
                 .build();
+    }
+
+    // *** refresh Token *** //
+    public AuthenticationResponse refreshToken(HttpServletRequest request, HttpServletResponse response) {
+        final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
+        final String refreshToken;
+        final String userEmail;
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return null;
+        }
+
+        refreshToken = authHeader.substring(7);
+        userEmail = jwtService.extractUsername(refreshToken);
+
+        if (userEmail != null) {
+            var user = this.repository.findByEmail(userEmail).orElseThrow();
+
+            if (jwtService.isTokenValid(refreshToken, user)) {
+                var accessToken = jwtService.generateToken(user, user.getId());
+
+                revokeAllUserTokens(user);
+                saveTokenForUser(user, accessToken);
+
+                return AuthenticationResponse.builder()
+                        .accessToken(accessToken)
+                        .refreshToken(refreshToken)
+                        .build();
+            }
+        }
+        return null;
     }
 
 
