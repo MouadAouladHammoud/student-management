@@ -3,7 +3,6 @@ import com.mouad.app.entities.Student;
 import com.mouad.app.repositories.StudentRepository;
 import com.mouad.app.requests.AuthenticationRequest;
 import com.mouad.app.requests.AuthenticationResponse;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -12,13 +11,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Service;
 import org.springframework.http.HttpHeaders;
-
-import java.io.IOException;
 
 import com.mouad.app.entities.Token;
 import com.mouad.app.repositories.TokenRepository;
@@ -42,8 +36,8 @@ public class AuthenticationService {
         );
 
         var student = repository.findByEmail(authenticationRequest.getEmail()).orElseThrow();
-        var jwtToken = jwtService.generateToken(student, student.getId());
-        var refreshToken = jwtService.generateRefreshToken(student, student.getId());
+        var jwtToken = jwtService.generateToken(student, student);
+        var refreshToken = jwtService.generateRefreshToken(student, student);
 
         this.revokeAllUserTokens(student);
         this.saveTokenForUser(student, jwtToken);
@@ -67,13 +61,13 @@ public class AuthenticationService {
         userEmail = jwtService.extractUsername(refreshToken);
 
         if (userEmail != null) {
-            var user = this.repository.findByEmail(userEmail).orElseThrow();
+            Student student = this.repository.findByEmail(userEmail).orElseThrow();
 
-            if (jwtService.isTokenValid(refreshToken, user)) {
-                var accessToken = jwtService.generateToken(user, user.getId());
+            if (jwtService.isTokenValid(refreshToken, student)) {
+                var accessToken = jwtService.generateToken(student, student);
 
-                revokeAllUserTokens(user);
-                saveTokenForUser(user, accessToken);
+                revokeAllUserTokens(student);
+                saveTokenForUser(student, accessToken);
 
                 return AuthenticationResponse.builder()
                         .accessToken(accessToken)

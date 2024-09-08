@@ -1,8 +1,7 @@
 package com.mouad.app.services;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import com.mouad.app.entities.Student;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.FilterChain;
@@ -53,33 +52,34 @@ public class Jwt {
             return claimsResolver.apply(claims);
         }
 
-        public String generateToken(UserDetails userDetails, Integer userId) {
-            return generateToken(new HashMap<>(), userDetails, userId);
+        public String generateToken(UserDetails userDetails, Student student) {
+            return generateToken(new HashMap<>(), userDetails, student);
         }
 
         public String generateToken(
                 Map<String, Object> extraClaims,
                 UserDetails userDetails,
-                Integer userId
+                Student student
         ) {
-            return buildToken(extraClaims, userDetails, userId, jwtExpiration);
+            return buildToken(extraClaims, userDetails, student, jwtExpiration);
         }
 
-        public String generateRefreshToken(UserDetails userDetails, Integer userId) {
-            return buildToken(new HashMap<>(), userDetails, userId, refreshExpiration);
+        public String generateRefreshToken(UserDetails userDetails, Student student) {
+            return buildToken(new HashMap<>(), userDetails, student, refreshExpiration);
         }
 
         private String buildToken(
                 Map<String, Object> extraClaims,
                 UserDetails userDetails,
-                Integer userId,
+                Student student,
                 long expiration
         ) {
             return Jwts
                     .builder()
                     .setClaims(extraClaims)
                     .setSubject(userDetails.getUsername())
-                    .claim("userId", userId) // Ajouter l'ID de l'utilisateur comme une revendication supplémentaire
+                    .claim("userId", student.getId()) // Ajouter l'ID de l'utilisateur comme une revendication supplémentaire
+                    .claim("role", student.getUserRole()) // Ajouter Role de l'utilisateur
                     .setIssuedAt(new Date(System.currentTimeMillis()))
                     .setExpiration(new Date(System.currentTimeMillis() + expiration))
                     .signWith(getSignInKey(), SignatureAlgorithm.HS256)
@@ -131,25 +131,47 @@ public class Jwt {
             final String authHeader = request.getHeader("Authorization");
             final String jwt;
             final String userEmail;
+
+            // Vérifier la présence du header Authorization
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
                 filterChain.doFilter(request, response);
                 return;
             }
+
+            // Extraction du token JWT sans le préfixe "Bearer "
             jwt = authHeader.substring(7);
-            userEmail = jwtService.extractUsername(jwt);
 
-            if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
+            try {
+                userEmail = jwtService.extractUsername(jwt); // Extraction de l'email ou du nom d'utilisateur à partir du token
 
-                var isTokenValid = tokenRepository.findByToken(jwt)
-                        .map(token -> !token.isExpired() && !token.isRevoked())
-                        .orElse(false);
+                // Vérifier si le token JWT est valide et l'utilisateur n'est pas déjà authentifié dans le contexte de sécurité
+                if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                    UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
 
-                if (jwtService.isTokenValid(jwt, userDetails) && isTokenValid) {
-                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails,null, userDetails.getAuthorities());
-                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                    // Vérifier si le token n'est pas expiré ou révoqué dans le repository de tokens
+                    var isTokenValid = tokenRepository.findByToken(jwt)
+                            .map(token -> !token.isExpired() && !token.isRevoked())
+                            .orElse(false);
+
+
+                    // Valide le token et définit l'authentification dans le contexte de sécurité
+                    if (jwtService.isTokenValid(jwt, userDetails) && isTokenValid) {
+                        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails,null, userDetails.getAuthorities());
+                        authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                        SecurityContextHolder.getContext().setAuthentication(authToken);
+                    }
                 }
+
+            } catch (ExpiredJwtException e) {
+                // Gère l'exception pour un token expiré
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.getWriter().write("Token has expired");
+                return;
+            } catch (JwtException | IllegalArgumentException e) {
+                // Gère les exceptions pour un token invalide ou autres erreurs JWT
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.getWriter().write("Invalid token");
+                return;
             }
             filterChain.doFilter(request, response);
         }
